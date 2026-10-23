@@ -1,0 +1,22 @@
+# Java and Maven
+target/
+*.class
+
+# Secrets and environment variables
+.env
+.env.*
+!.env.example
+
+# IDE files
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# React / Node
+node_modules/
+dist/
+
+# OS files
+.DS_Store
