@@ -13,7 +13,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/disputes")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {
+    "http://localhost:5173",
+    "https://payment-dispute-management-system.vercel.app"
+})
 public class DisputeController {
 
     private final DisputeRepository disputeRepository;
