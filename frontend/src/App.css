@@ -613,3 +613,31 @@ tbody tr:hover {
     padding: 20px;
   }
 }
+
+
+  .action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .resolve-button {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: #15803d;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .resolve-button:hover {
+    background: #166534;
+  }
+
+  .resolve-button:focus-visible,
+  .view-button:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }

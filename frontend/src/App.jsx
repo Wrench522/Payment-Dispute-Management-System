@@ -55,6 +55,42 @@ const [statusFilter, setStatusFilter] = useState("ALL");
     });
   }
 
+
+  async function handleResolve(dispute) {
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await fetch(`${API_URL}/${dispute.id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "RESOLVED",
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not resolve this dispute.");
+      }
+
+      setSuccess("Dispute resolved successfully!");
+
+      if (selectedDispute?.id === dispute.id) {
+        setSelectedDispute({
+          ...selectedDispute,
+          status: "RESOLVED",
+        });
+      }
+
+      await loadDisputes();
+    } catch (err) {
+      setError(err.message || "Unable to resolve dispute.");
+    }
+  }
+
+
   async function handleSubmit(event) {
     event.preventDefault();
 setError("");
@@ -307,41 +343,64 @@ await loadDisputes();
                       <th>ACTION</th>
                     </tr>
                   </thead>
-                  <tbody>
-                    //update
-                    {filteredDisputes.map((dispute) => (
-                      <tr key={dispute.id}>
-                        <td className="reference">{dispute.transactionReference}</td>
-                        <td>{dispute.customerName}</td>
-                        <td>
-                          KSh {Number(dispute.amount).toLocaleString("en-KE", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          <span className={`status-badge ${dispute.status.toLowerCase()}`}>
-                            {dispute.status}
-                          </span>
-                        </td>
-                        <td>
-                          {dispute.createdAt
-                            ? new Date(dispute.createdAt).toLocaleDateString("en-KE")
-                            : "—"}
-                            <td>
-  <button
-    type="button"
-    className="view-button"
-    onClick={() => setSelectedDispute(dispute)}
-  >
-    View details
-  </button>
-</td>
-                            
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
+                  
+  <tbody>
+    {filteredDisputes.map((dispute) => (
+      <tr key={dispute.id}>
+        <td className="reference">
+          {dispute.transactionReference}
+        </td>
+
+        <td>{dispute.customerName}</td>
+
+        <td>
+          KSh{" "}
+          {Number(dispute.amount).toLocaleString("en-KE", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}
+        </td>
+
+        <td>
+          <span
+            className={`status-badge ${(dispute.status || "OPEN").toLowerCase()}`}
+          >
+            {dispute.status}
+          </span>
+        </td>
+
+        <td>
+          {dispute.createdAt
+            ? new Date(dispute.createdAt).toLocaleDateString("en-KE")
+            : "—"}
+        </td>
+
+        <td>
+          <div className="action-buttons">
+            <button
+              type="button"
+              className="view-button"
+              onClick={() => setSelectedDispute(dispute)}
+            >
+              View details
+            </button>
+
+            {dispute.status === "OPEN" && (
+              <button
+                type="button"
+                className="resolve-button"
+                onClick={() => handleResolve(dispute)}
+              >
+                Resolve
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    ))}
+  </tbody>
+
+
                 </table>
               </div>
             )}
