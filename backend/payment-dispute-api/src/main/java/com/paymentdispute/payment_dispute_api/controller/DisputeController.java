@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 import java.util.List;
 
 @RestController
@@ -49,4 +51,25 @@ public class DisputeController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    @PatchMapping("/{id}/status")
+public ResponseEntity<Dispute> updateDisputeStatus(
+        @PathVariable Long id,
+        @RequestBody Map<String, String> request) {
+
+    String newStatus = request.get("status");
+
+    if (newStatus == null ||
+            (!newStatus.equals("OPEN") &&
+             !newStatus.equals("RESOLVED"))) {
+        return ResponseEntity.badRequest().build();
+    }
+
+    return disputeRepository.findById(id)
+            .map(dispute -> {
+                dispute.setStatus(newStatus);
+                Dispute updatedDispute = disputeRepository.save(dispute);
+                return ResponseEntity.ok(updatedDispute);
+            })
+            .orElse(ResponseEntity.notFound().build());
+}
 }
