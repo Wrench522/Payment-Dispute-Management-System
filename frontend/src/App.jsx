@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
-const API_URL = "http://localhost:8080/api/disputes";
+const API_URL = "https://payment-dispute-api-docker.onrender.com/api/disputes";
 
 function App() {
   const [disputes, setDisputes] = useState([]);
