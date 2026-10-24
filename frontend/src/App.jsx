@@ -6,9 +6,16 @@ const API_URL = "https://payment-dispute-api-docker.onrender.com/api/disputes";
 
 function App() {
   const [disputes, setDisputes] = useState([]);
+  const [selectedDispute, setSelectedDispute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [success, setSuccess] = useState("");
+
+  
+  const [searchTerm, setSearchTerm] = useState("");
+const [statusFilter, setStatusFilter] = useState("ALL");
 
   const [form, setForm] = useState({
     transactionReference: "",
@@ -31,7 +38,7 @@ function App() {
       const data = await response.json();
       setDisputes(data);
     } catch {
-      setError("Unable to connect to the backend. Check that Spring Boot is running on port 8080.");
+      setError("Unable to load disputes. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -50,8 +57,9 @@ function App() {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    setError("");
-    setSubmitting(true);
+setError("");
+setSuccess("");
+setSubmitting(true);
 
     try {
       const response = await fetch(API_URL, {
@@ -70,13 +78,14 @@ function App() {
       }
 
       setForm({
-        transactionReference: "",
-        customerName: "",
-        reason: "",
-        amount: "",
-      });
+  transactionReference: "",
+  customerName: "",
+  reason: "",
+  amount: "",
+});
 
-      await loadDisputes();
+setSuccess("Dispute submitted successfully!");
+await loadDisputes();
     } catch (err) {
       setError(err.message || "An unexpected error occurred.");
     } finally {
@@ -88,6 +97,21 @@ function App() {
     (total, dispute) => total + Number(dispute.amount),
     0
   );
+//this
+  const filteredDisputes = [...disputes]
+  .reverse()
+  .filter((dispute) => {
+    const search = searchTerm.toLowerCase().trim();
+
+    const matchesSearch =
+      (dispute.transactionReference || "").toLowerCase().includes(search) ||
+      (dispute.customerName || "").toLowerCase().includes(search);
+
+    const matchesStatus =
+      statusFilter === "ALL" || dispute.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="app">
@@ -129,6 +153,11 @@ function App() {
         </header>
 
         {error && <div className="error-message">{error}</div>}
+        {success && (
+  <div className="success-message" role="status">
+    ✓ {success}
+  </div>
+)}
 
         <section className="stats">
           <div className="stat-card">
@@ -229,11 +258,42 @@ function App() {
               </div>
               <span className="count-badge">{disputes.length} total</span>
             </div>
+               
+             
+             <div className="table-controls">
+  <input
+    type="search"
+    className="search-input"
+    placeholder="Search reference or customer..."
+    value={searchTerm}
+    onChange={(event) => setSearchTerm(event.target.value)}
+    aria-label="Search disputes"
+  />
+
+  <select
+    className="status-filter"
+    value={statusFilter}
+    onChange={(event) => setStatusFilter(event.target.value)}
+    aria-label="Filter disputes by status"
+  >
+    <option value="ALL">All statuses</option>
+    <option value="OPEN">Open</option>
+    <option value="RESOLVED">Resolved</option>
+  </select>
+</div>
+
+
 
             {loading ? (
               <p className="empty-state">Loading disputes...</p>
-            ) : disputes.length === 0 ? (
-              <p className="empty-state">No disputes found. Submit one to get started.</p>
+            ) : filteredDisputes.length === 0 ? (
+
+              
+  <p className="empty-state">
+    {disputes.length === 0
+      ? "No disputes found. Submit one to get started."
+      : "No disputes match your search or selected status."}
+  </p>
             ) : (
               <div className="table-scroll">
                 <table>
@@ -244,10 +304,12 @@ function App() {
                       <th>AMOUNT</th>
                       <th>STATUS</th>
                       <th>DATE</th>
+                      <th>ACTION</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {[...disputes].reverse().map((dispute) => (
+                    //update
+                    {filteredDisputes.map((dispute) => (
                       <tr key={dispute.id}>
                         <td className="reference">{dispute.transactionReference}</td>
                         <td>{dispute.customerName}</td>
@@ -266,6 +328,16 @@ function App() {
                           {dispute.createdAt
                             ? new Date(dispute.createdAt).toLocaleDateString("en-KE")
                             : "—"}
+                            <td>
+  <button
+    type="button"
+    className="view-button"
+    onClick={() => setSelectedDispute(dispute)}
+  >
+    View details
+  </button>
+</td>
+                            
                         </td>
                       </tr>
                     ))}
@@ -276,6 +348,88 @@ function App() {
           </div>
         </section>
 
+{selectedDispute && (
+  <div
+    className="modal-overlay"
+    onClick={() => setSelectedDispute(null)}
+  >
+    <section
+      className="details-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="details-title"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="modal-heading">
+        <div>
+          <p className="eyebrow">DISPUTE INFORMATION</p>
+          <h2 id="details-title">Dispute details</h2>
+        </div>
+
+        <button
+          type="button"
+          className="close-button"
+          onClick={() => setSelectedDispute(null)}
+          aria-label="Close dispute details"
+        >
+          ×
+        </button>
+      </div>
+
+      <div className="details-list">
+        <div className="detail-item">
+          <span>Transaction reference</span>
+          <strong>{selectedDispute.transactionReference}</strong>
+        </div>
+
+        <div className="detail-item">
+          <span>Customer name</span>
+          <strong>{selectedDispute.customerName}</strong>
+        </div>
+
+        <div className="detail-item">
+          <span>Disputed amount</span>
+          <strong>
+            KSh{" "}
+            {Number(selectedDispute.amount).toLocaleString("en-KE", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </strong>
+        </div>
+
+        <div className="detail-item">
+          <span>Status</span>
+          <strong>
+            {selectedDispute.status || "UNKNOWN"}
+          </strong>
+        </div>
+
+        <div className="detail-item">
+          <span>Date submitted</span>
+          <strong>
+            {selectedDispute.createdAt
+              ? new Date(selectedDispute.createdAt).toLocaleString("en-KE")
+              : "—"}
+          </strong>
+        </div>
+
+        <div className="detail-item detail-reason">
+          <span>Reason for dispute</span>
+          <p>{selectedDispute.reason || "No reason provided."}</p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="submit-button modal-close"
+        onClick={() => setSelectedDispute(null)}
+      >
+        Close details
+      </button>
+    </section>
+  </div>
+)}
         <footer>PayResolve · Payment Dispute Management System</footer>
       </main>
     </div>
