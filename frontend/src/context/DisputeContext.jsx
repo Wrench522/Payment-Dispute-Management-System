@@ -1,53 +1,92 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useAuth } from "./AuthContext";
 
-const API_URL =
-  "https://payment-dispute-api-docker.onrender.com/api/disputes";
+const API_URL = `${
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+}/disputes`;
 
 const DisputeContext = createContext(null);
 
 export function DisputeProvider({ children }) {
+  const { token, isAuthenticated } = useAuth();
+
   const [disputes, setDisputes] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  async function apiRequest(url, options = {}) {
+    if (!token) {
+      throw new Error("Please sign in to continue.");
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        ...(options.body
+          ? { "Content-Type": "application/json" }
+          : {}),
+        ...options.headers,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 401) {
+      throw new Error("Your session has expired. Please sign in again.");
+    }
+
+    return response;
+  }
+
   async function loadDisputes() {
+    if (!isAuthenticated || !token) {
+      setDisputes([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch(API_URL);
+      const response = await apiRequest(API_URL);
 
       if (!response.ok) {
         throw new Error("Could not load disputes.");
       }
 
-      const data = await response.json();
-      setDisputes(data);
-    } catch {
-      setError(
-        "Unable to load disputes. Please check your connection and try again."
-      );
+      setDisputes(await response.json());
+    } catch (err) {
+      setError(err.message || "Unable to load disputes.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadDisputes();
-  }, []);
+    if (isAuthenticated && token) {
+      loadDisputes();
+    } else {
+      setDisputes([]);
+      setLoading(false);
+      setError("");
+      setSuccess("");
+    }
+  }, [isAuthenticated, token]);
 
   async function submitDispute(form) {
     setError("");
     setSuccess("");
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await apiRequest(API_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({
           ...form,
           amount: Number(form.amount),
@@ -55,16 +94,14 @@ export function DisputeProvider({ children }) {
       });
 
       if (!response.ok) {
-        throw new Error(
-          "The dispute could not be submitted. Check your entries."
-        );
+        throw new Error("The dispute could not be submitted.");
       }
 
       setSuccess("Dispute submitted successfully!");
       await loadDisputes();
       return true;
     } catch (err) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err.message || "Unable to submit dispute.");
       return false;
     }
   }
@@ -74,15 +111,13 @@ export function DisputeProvider({ children }) {
     setSuccess("");
 
     try {
-      const response = await fetch(`${API_URL}/${dispute.id}/status`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: "RESOLVED",
-        }),
-      });
+      const response = await apiRequest(
+        `${API_URL}/${dispute.id}/status`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: "RESOLVED" }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Could not resolve this dispute.");
@@ -120,7 +155,9 @@ export function useDisputes() {
   const context = useContext(DisputeContext);
 
   if (!context) {
-    throw new Error("useDisputes must be used inside DisputeProvider.");
+    throw new Error(
+      "useDisputes must be used inside DisputeProvider."
+    );
   }
 
   return context;

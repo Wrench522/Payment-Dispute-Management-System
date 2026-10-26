@@ -2,7 +2,7 @@
 import { NavLink } from "react-router-dom";
 
 const menuItems = [
-  { path: "/", label: "Dashboard", icon: "▦", end: true },
+  { path: "/dashboard", label: "Dashboard", icon: "▦" },
   { path: "/analytics", label: "Analytics", icon: "◔" },
   { path: "/disputes", label: "All disputes", icon: "▤" },
   { path: "/new-dispute", label: "New dispute", icon: "+" },
