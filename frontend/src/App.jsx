@@ -1,6 +1,14 @@
 
 import { useEffect, useState } from "react";
 import "./App.css";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const API_URL = "https://payment-dispute-api-docker.onrender.com/api/disputes";
 
@@ -134,20 +142,120 @@ await loadDisputes();
     0
   );
 //this
-  const filteredDisputes = [...disputes]
+ 
+const filteredDisputes = [...disputes]
   .reverse()
   .filter((dispute) => {
-    const search = searchTerm.toLowerCase().trim();
+    const search = searchTerm.toLowerCase();
 
     const matchesSearch =
-      (dispute.transactionReference || "").toLowerCase().includes(search) ||
-      (dispute.customerName || "").toLowerCase().includes(search);
+      (dispute.transactionReference || "")
+        .toLowerCase()
+        .includes(search) ||
+      (dispute.customerName || "")
+        .toLowerCase()
+        .includes(search) ||
+      (dispute.reason || "")
+        .toLowerCase()
+        .includes(search);
 
     const matchesStatus =
-      statusFilter === "ALL" || dispute.status === statusFilter;
+      statusFilter === "ALL" ||
+      dispute.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
+
+// Dashboard statistics
+const totalDisputes = disputes.length;
+
+const openDisputes = disputes.filter(
+  (dispute) => dispute.status === "OPEN"
+).length;
+
+const resolvedDisputes = disputes.filter(
+  (dispute) => dispute.status === "RESOLVED"
+).length;
+
+
+//CHARTS
+const disputeChartData = [
+  { name: "Open", value: openDisputes },
+  { name: "Resolved", value: resolvedDisputes },
+  {
+    name: "Under Review",
+    value: disputes.filter(
+      (dispute) => dispute.status === "UNDER_REVIEW"
+    ).length,
+  },
+];
+
+const chartColors = ["#f59e0b", "#16a34a", "#3b82f6"];
+
+const [currentPage, setCurrentPage] = useState(1);
+
+const disputesPerPage = 5;
+
+const totalPages = Math.max(
+  1,
+  Math.ceil(filteredDisputes.length / disputesPerPage)
+);
+
+const startIndex = (currentPage - 1) * disputesPerPage;
+
+const paginatedDisputes = filteredDisputes.slice(
+  startIndex,
+  startIndex + disputesPerPage
+);
+
+
+function exportDisputesToCSV() {
+  const headers = [
+    "Transaction Reference",
+    "Customer Name",
+    "Amount (KSh)",
+    "Reason",
+    "Status",
+    "Date Submitted",
+  ];
+
+  const escapeCSV = (value) => {
+    const text = String(value ?? "");
+    return `"${text.replace(/"/g, '""')}"`;
+  };
+
+  const rows = filteredDisputes.map((dispute) => [
+    dispute.transactionReference,
+    dispute.customerName,
+    dispute.amount,
+    dispute.reason,
+    dispute.status,
+    dispute.createdAt
+      ? new Date(dispute.createdAt).toLocaleString("en-KE")
+      : "",
+  ]);
+
+  const csvContent = [headers, ...rows]
+    .map((row) => row.map(escapeCSV).join(","))
+    .join("\r\n");
+
+  const blob = new Blob(["\uFEFF" + csvContent], {
+    type: "text/csv;charset=utf-8;",
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "payment-disputes.csv";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  URL.revokeObjectURL(url);
+}
+
+  
 
   return (
     <div className="app">
@@ -209,6 +317,18 @@ await loadDisputes();
             </h2>
             <span>Awaiting review</span>
           </div>
+
+
+
+<div className="stat-card">
+  <div className="stat-card-icon">✓</div>
+  <div className="stat-card-content">
+    <p>Resolved Disputes</p>
+    <h2>{resolvedDisputes}</h2>
+    <span>Successfully resolved disputes</span>
+  </div>
+</div>
+
 
           <div className="stat-card">
             <p>Total disputed amount</p>
@@ -286,6 +406,38 @@ await loadDisputes();
             </form>
           </div>
 
+
+<section className="chart-section">
+  <h2>Dispute Status Overview</h2>
+
+  <div className="chart-container">
+    <ResponsiveContainer width="100%" height={300}>
+      <PieChart>
+        <Pie
+          data={disputeChartData}
+          dataKey="value"
+          nameKey="name"
+          cx="50%"
+          cy="50%"
+          outerRadius={100}
+          label
+        >
+          {disputeChartData.map((entry, index) => (
+            <Cell
+              key={entry.name}
+              fill={chartColors[index % chartColors.length]}
+            />
+          ))}
+        </Pie>
+
+        <Tooltip />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  </div>
+</section>
+
+//table
           <div className="panel table-panel">
             <div className="panel-heading">
               <div>
@@ -320,6 +472,21 @@ await loadDisputes();
 
 
 
+
+
+<button
+  type="button"
+  className="export-button"
+  onClick={exportDisputesToCSV}
+  disabled={filteredDisputes.length === 0}
+>
+  Export CSV
+</button>
+
+
+
+
+
             {loading ? (
               <p className="empty-state">Loading disputes...</p>
             ) : filteredDisputes.length === 0 ? (
@@ -345,7 +512,7 @@ await loadDisputes();
                   </thead>
                   
   <tbody>
-    {filteredDisputes.map((dispute) => (
+    {paginatedDisputes.map((dispute) => (
       <tr key={dispute.id}>
         <td className="reference">
           {dispute.transactionReference}
@@ -402,10 +569,49 @@ await loadDisputes();
 
 
                 </table>
+                
+
+<div className="pagination">
+  <span>
+    Showing{" "}
+    {filteredDisputes.length === 0 ? 0 : startIndex + 1}
+    {" "}to{" "}
+    {Math.min(startIndex + disputesPerPage, filteredDisputes.length)}
+    {" "}of {filteredDisputes.length} disputes
+  </span>
+
+  <div className="pagination-buttons">
+    <button
+      type="button"
+      disabled={currentPage === 1}
+      onClick={() =>
+        setCurrentPage((page) => Math.max(1, page - 1))
+      }
+    >
+      Previous
+    </button>
+
+    <span>
+      Page {currentPage} of {totalPages}
+    </span>
+
+    <button
+      type="button"
+      disabled={currentPage >= totalPages}
+      onClick={() =>
+        setCurrentPage((page) => Math.min(totalPages, page + 1))
+      }
+    >
+      Next
+    </button>
+  </div>
+</div>
+
               </div>
             )}
           </div>
         </section>
+
 
 {selectedDispute && (
   <div
@@ -450,7 +656,7 @@ await loadDisputes();
           <span>Disputed amount</span>
           <strong>
             KSh{" "}
-            {Number(selectedDispute.amount).toLocaleString("en-KE", {
+            {Number(selectedDispute.amount || 0).toLocaleString("en-KE", {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
             })}
@@ -460,7 +666,11 @@ await loadDisputes();
         <div className="detail-item">
           <span>Status</span>
           <strong>
-            {selectedDispute.status || "UNKNOWN"}
+            <span
+              className={`status-badge ${(selectedDispute.status || "UNKNOWN").toLowerCase()}`}
+            >
+              {selectedDispute.status || "UNKNOWN"}
+            </span>
           </strong>
         </div>
 
@@ -479,16 +689,29 @@ await loadDisputes();
         </div>
       </div>
 
-      <button
-        type="button"
-        className="submit-button modal-close"
-        onClick={() => setSelectedDispute(null)}
-      >
-        Close details
-      </button>
+      <div className="modal-actions">
+        {selectedDispute.status === "OPEN" && (
+          <button
+            type="button"
+            className="resolve-button"
+            onClick={() => handleResolve(selectedDispute)}
+          >
+            Resolve dispute
+          </button>
+        )}
+
+        <button
+          type="button"
+          className="submit-button modal-close"
+          onClick={() => setSelectedDispute(null)}
+        >
+          Close details
+        </button>
+      </div>
     </section>
   </div>
 )}
+
         <footer>PayResolve · Payment Dispute Management System</footer>
       </main>
     </div>
