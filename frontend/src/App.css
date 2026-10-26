@@ -1271,3 +1271,60 @@ button:disabled {
     padding: 16px;
   }
 }
+/* Ensure mobile navigation stays visible */
+@media (max-width: 768px) {
+  .sidebar {
+    display: flex !important;
+    flex-direction: column;
+    position: relative !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: auto !important;
+    padding: 16px !important;
+    overflow: visible;
+    box-sizing: border-box;
+  }
+
+  .brand {
+    display: flex !important;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  .nav-label {
+    display: block !important;
+    margin: 8px 0;
+  }
+
+  .sidebar-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px;
+    width: 100%;
+    overflow: visible !important;
+  }
+
+  .nav-item {
+    display: inline-flex !important;
+    flex: 0 1 auto;
+    width: auto !important;
+    max-width: 100%;
+    white-space: nowrap;
+    padding: 10px;
+  }
+
+  .sidebar-bottom {
+    display: block !important;
+    margin-top: 12px;
+  }
+
+  .main {
+    width: 100% !important;
+    min-width: 0;
+    margin-left: 0 !important;
+    padding: 20px 16px;
+    box-sizing: border-box;
+  }
+}
