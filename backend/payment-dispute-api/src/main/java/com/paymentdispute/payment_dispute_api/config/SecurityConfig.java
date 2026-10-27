@@ -70,9 +70,10 @@ public class SecurityConfig {
         CorsConfiguration cors = new CorsConfiguration();
 
         cors.setAllowedOrigins(List.of(
-            "http://localhost:5173",
-            "https://payment-dispute-management-system.vercel.app"
-        ));
+    "http://localhost:5173",
+    "https://payment-dispute-management-system.vercel.app",
+    "https://frontend-wrench2.vercel.app"
+));
 
         cors.setAllowedMethods(List.of(
             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
