@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import { DisputeProvider } from "./context/DisputeContext";
 import MainLayout from "./layouts/MainLayout";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Analytics = lazy(() => import("./pages/Analytics"));
@@ -27,12 +28,12 @@ function ProtectedRoute() {
     : <Navigate to="/login" replace />;
 }
 
-function PublicRoute() {
+function PublicRoute({ children }) {
   const { isAuthenticated } = useAuth();
 
   return isAuthenticated
     ? <Navigate to="/dashboard" replace />
-    : <Login />;
+    : children;
 }
 
 export default function App() {
@@ -42,7 +43,23 @@ export default function App() {
         <DisputeProvider>
           <Suspense fallback={<div className="page">Loading page...</div>}>
             <Routes>
-              <Route path="/login" element={<PublicRoute />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
+
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                }
+              />
 
               <Route element={<ProtectedRoute />}>
                 <Route element={<MainLayout />}>

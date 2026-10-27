@@ -8,7 +8,7 @@ import {
 const AuthContext = createContext(null);
 
 const API_URL =
-  `${import.meta.env.VITE_API_URL || "http://localhost:8080/api"}`;
+  import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 function getSavedSession() {
   try {
@@ -31,25 +31,60 @@ function getSavedSession() {
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(getSavedSession);
 
-  async function login(email, password) {
-    const response = await fetch(`${API_URL}/auth/login`, {
+  async function register(fullName, email, password) {
+    const response = await fetch(`${API_URL}/auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        fullName: fullName.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+      }),
     });
 
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
       throw new Error(
-        data.error || "Unable to sign in. Check your credentials."
+        data.error ||
+        data.message ||
+        (response.status === 409
+          ? "An account with this email already exists."
+          : "Unable to create your account.")
+      );
+    }
+
+    return data;
+  }
+
+  async function login(email, password) {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+        data.message ||
+        "Unable to sign in. Check your credentials."
       );
     }
 
     if (!data.token) {
-      throw new Error("The server did not return an authentication token.");
+      throw new Error(
+        "The server did not return an authentication token."
+      );
     }
 
     const user = {
@@ -82,6 +117,7 @@ export function AuthProvider({ children }) {
         user: session?.user ?? null,
         token: session?.token ?? null,
         isAuthenticated: Boolean(session?.token),
+        register,
         login,
         logout,
       }}
@@ -95,7 +131,9 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (!context) {
-    throw new Error("useAuth must be used inside AuthProvider.");
+    throw new Error(
+      "useAuth must be used inside AuthProvider."
+    );
   }
 
   return context;

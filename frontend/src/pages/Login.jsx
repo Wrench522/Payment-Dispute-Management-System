@@ -123,9 +123,13 @@ export default function Login() {
             </button>
           </form>
 
-          <p className="login-security-note">
-            Your dispute management workspace
-          </p>
+         <p className="login-security-note">
+  Your dispute management workspace
+</p>
+
+<p className="login-security-note">
+  Don't have an account? <Link to="/register">Create one</Link>
+</p>
         </div>
       </section>
     </main>
