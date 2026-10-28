@@ -1,6 +1,7 @@
 
 package com.paymentdispute.payment_dispute_api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
@@ -39,6 +40,11 @@ public class Dispute {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
 
     public Dispute() {
     }
@@ -89,10 +95,18 @@ public class Dispute {
     }
 
     public void setStatus(String status) {
-    this.status = status;
-}
+        this.status = status;
+    }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public AppUser getOwner() {
+        return owner;
+    }
+
+    public void setOwner(AppUser owner) {
+        this.owner = owner;
     }
 }
