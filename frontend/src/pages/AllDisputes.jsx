@@ -1,8 +1,11 @@
 
 import { useMemo, useState } from "react";
 import { useDisputes } from "../context/DisputeContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function AllDisputes() {
+  const { user } = useAuth();
+const isAdmin = user?.role?.toUpperCase() === "ADMIN";
   const {
     disputes,
     loading,
@@ -171,7 +174,7 @@ export default function AllDisputes() {
                   <th>Amount</th>
                   <th>Reason</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th>{isAdmin ? "Actions" : "Details"}</th>
                 </tr>
               </thead>
 
@@ -214,18 +217,16 @@ export default function AllDisputes() {
                           View
                         </button>
 
-                        {String(dispute.status).toUpperCase() !==
-                          "RESOLVED" && (
-                          <button
-                            className="small-button resolve-button"
-                            disabled={resolvingId === dispute.id}
-                            onClick={() => handleResolve(dispute)}
-                          >
-                            {resolvingId === dispute.id
-                              ? "Resolving..."
-                              : "Resolve"}
-                          </button>
-                        )}
+                        {isAdmin &&
+  String(dispute.status).toUpperCase() !== "RESOLVED" && (
+    <button
+      className="small-button resolve-button"
+      disabled={resolvingId === dispute.id}
+      onClick={() => handleResolve(dispute)}
+    >
+      {resolvingId === dispute.id ? "Resolving..." : "Resolve"}
+    </button>
+  )}
                       </div>
                     </td>
                   </tr>

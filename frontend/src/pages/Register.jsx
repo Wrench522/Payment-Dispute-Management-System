@@ -9,6 +9,7 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +21,11 @@ export default function Register() {
     event.preventDefault();
     setError("");
     setSuccess("");
+
+    if (fullName.trim().length < 2) {
+      setError("Please enter your full name.");
+      return;
+    }
 
     if (password.length < 8) {
       setError("Password must contain at least 8 characters.");
@@ -34,8 +40,8 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register(fullName, email, password);
-      setSuccess("Account created successfully. You can now sign in.");
+      await register(fullName.trim(), email.trim().toLowerCase(), password);
+      setSuccess("Account created successfully. Redirecting to sign in...");
 
       setTimeout(() => {
         navigate("/login", {
@@ -65,11 +71,26 @@ export default function Register() {
           <span className="login-badge">
             PAYMENT DISPUTE MANAGEMENT
           </span>
-          <h1>Start resolving.<br />Build trust.</h1>
+          <h1>Every dispute.<br />A clear resolution.</h1>
           <p>
-            Create your account to manage payment disputes,
-            track investigations, and monitor resolutions.
+            Take control of your payment disputes with one secure
+            workspace to submit cases, follow progress, and track outcomes.
           </p>
+
+          <div className="register-benefits">
+            <div className="register-benefit">
+              <span>✓</span>
+              <p>Submit payment disputes online</p>
+            </div>
+            <div className="register-benefit">
+              <span>✓</span>
+              <p>Track the status of your cases</p>
+            </div>
+            <div className="register-benefit">
+              <span>✓</span>
+              <p>Keep your dispute information organized</p>
+            </div>
+          </div>
         </div>
 
         <p className="login-copyright">
@@ -78,11 +99,16 @@ export default function Register() {
       </section>
 
       <section className="login-form-panel">
-        <div className="login-form-container">
+        <div className="login-form-container register-form-container">
+          <div className="login-mobile-brand">
+            <div className="brand-icon">PD</div>
+            <span>PayResolve</span>
+          </div>
+
           <div className="login-heading">
-            <span className="eyebrow">GET STARTED</span>
-            <h1>Create your account</h1>
-            <p>Enter your details to join PayResolve.</p>
+            <span className="eyebrow">CREATE YOUR ACCOUNT</span>
+            <h1>Join PayResolve</h1>
+            <p>Enter your details to get started.</p>
           </div>
 
           {error && (
@@ -104,9 +130,10 @@ export default function Register() {
                 id="register-name"
                 type="text"
                 autoComplete="name"
-                placeholder="Your full name"
+                placeholder="e.g. Wrench Taiku"
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
+                minLength={2}
                 maxLength={100}
                 required
               />
@@ -128,16 +155,26 @@ export default function Register() {
 
             <div className="form-field">
               <label htmlFor="register-password">Password</label>
-              <input
-                id="register-password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                minLength={8}
-                required
-              />
+              <div className="password-input-wrap">
+                <input
+                  id="register-password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  minLength={8}
+                  required
+                />
+                <button
+                  className="password-toggle"
+                  type="button"
+                  onClick={() => setShowPassword((current) => !current)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
 
             <div className="form-field">
@@ -146,13 +183,11 @@ export default function Register() {
               </label>
               <input
                 id="register-confirm-password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
-                placeholder="Enter your password again"
+                placeholder="Re-enter your password"
                 value={confirmPassword}
-                onChange={(event) =>
-                  setConfirmPassword(event.target.value)
-                }
+                onChange={(event) => setConfirmPassword(event.target.value)}
                 required
               />
             </div>
@@ -162,13 +197,18 @@ export default function Register() {
               type="submit"
               disabled={loading}
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading ? "Creating account..." : "Create customer account"}
               <span aria-hidden="true">→</span>
             </button>
           </form>
 
           <p className="login-security-note">
-            Already have an account? <Link to="/login">Sign in</Link>
+            Already registered? <Link to="/login">Sign in</Link>
+          </p>
+
+          <p className="register-account-note">
+            <span aria-hidden="true">🔒</span> Your account is for customer
+            access. Administrator access is assigned separately.
           </p>
         </div>
       </section>

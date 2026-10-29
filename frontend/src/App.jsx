@@ -20,20 +20,129 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const AllDisputes = lazy(() => import("./pages/AllDisputes"));
 const NewDispute = lazy(() => import("./pages/NewDispute"));
 
-function ProtectedRoute() {
-  const { isAuthenticated } = useAuth();
+function ProtectedRoute({ allowedRoles }) {
+  const { isAuthenticated, user } = useAuth();
 
-  return isAuthenticated
-    ? <Outlet />
-    : <Navigate to="/login" replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (
+    allowedRoles &&
+    !allowedRoles.includes(user?.role?.toUpperCase())
+  ) {
+    return (
+      <Navigate
+        to={user?.role?.toUpperCase() === "ADMIN"
+          ? "/admin/dashboard"
+          : "/customer/dashboard"}
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
 }
 
 function PublicRoute({ children }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
-  return isAuthenticated
-    ? <Navigate to="/dashboard" replace />
-    : children;
+  if (!isAuthenticated) return children;
+
+  return (
+    <Navigate
+      to={user?.role?.toUpperCase() === "ADMIN"
+        ? "/admin/dashboard"
+        : "/customer/dashboard"}
+      replace
+    />
+  );
+}
+
+function PortalLayout() {
+  return <MainLayout />;
+}
+
+function AppRoutes() {
+  return (
+    <Suspense fallback={<div className="page">Loading page...</div>}>
+      <Routes>
+        <Route
+          path="/login"
+          element={<PublicRoute><Login /></PublicRoute>}
+        />
+
+        <Route
+          path="/register"
+          element={<PublicRoute><Register /></PublicRoute>}
+        />
+
+        <Route element={<ProtectedRoute allowedRoles={["USER"]} />}>
+          <Route element={<PortalLayout />}>
+            <Route
+              path="/customer/dashboard"
+              element={<Dashboard />}
+            />
+            <Route
+              path="/customer/disputes"
+              element={<AllDisputes />}
+            />
+            <Route
+              path="/customer/new-dispute"
+              element={<NewDispute />}
+            />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={["ADMIN"]} />}>
+          <Route element={<PortalLayout />}>
+            <Route
+              path="/admin/dashboard"
+              element={<Dashboard />}
+            />
+            <Route
+              path="/admin/disputes"
+              element={<AllDisputes />}
+            />
+            <Route
+              path="/admin/analytics"
+              element={<Analytics />}
+            />
+          </Route>
+        </Route>
+
+        <Route
+          path="/dashboard"
+          element={<RoleHomeRedirect />}
+        />
+        <Route
+          path="/"
+          element={<RoleHomeRedirect />}
+        />
+        <Route
+          path="*"
+          element={<RoleHomeRedirect />}
+        />
+      </Routes>
+    </Suspense>
+  );
+}
+
+function RoleHomeRedirect() {
+  const { isAuthenticated, user } = useAuth();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <Navigate
+      to={user?.role?.toUpperCase() === "ADMIN"
+        ? "/admin/dashboard"
+        : "/customer/dashboard"}
+      replace
+    />
+  );
 }
 
 export default function App() {
@@ -41,58 +150,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <DisputeProvider>
-          <Suspense fallback={<div className="page">Loading page...</div>}>
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <PublicRoute>
-                    <Login />
-                  </PublicRoute>
-                }
-              />
-
-              <Route
-                path="/register"
-                element={
-                  <PublicRoute>
-                    <Register />
-                  </PublicRoute>
-                }
-              />
-
-              <Route element={<ProtectedRoute />}>
-                <Route element={<MainLayout />}>
-                  <Route
-                    path="/dashboard"
-                    element={<Dashboard />}
-                  />
-                  <Route
-                    path="/analytics"
-                    element={<Analytics />}
-                  />
-                  <Route
-                    path="/disputes"
-                    element={<AllDisputes />}
-                  />
-                  <Route
-                    path="/new-dispute"
-                    element={<NewDispute />}
-                  />
-                </Route>
-              </Route>
-
-              <Route
-                path="/"
-                element={<Navigate to="/dashboard" replace />}
-              />
-
-              <Route
-                path="*"
-                element={<Navigate to="/dashboard" replace />}
-              />
-            </Routes>
-          </Suspense>
+          <AppRoutes />
         </DisputeProvider>
       </AuthProvider>
     </BrowserRouter>

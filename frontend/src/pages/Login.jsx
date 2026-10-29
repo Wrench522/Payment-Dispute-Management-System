@@ -6,6 +6,7 @@ import "../App.css";
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState("USER");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,8 +20,13 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email.trim(), password);
-      navigate("/dashboard", { replace: true });
+      const user = await login(email.trim(), password, selectedRole);
+
+if (user.role === "ADMIN") {
+  navigate("/admin/dashboard", { replace: true });
+} else {
+  navigate("/customer/dashboard", { replace: true });
+}
     } catch (err) {
       setError(err.message || "Unable to sign in.");
     } finally {
@@ -89,6 +95,23 @@ export default function Login() {
                 required
               />
             </div>
+
+
+
+
+<div className="form-field">
+  <label htmlFor="login-role">Sign in as</label>
+  <select
+    id="login-role"
+    value={selectedRole}
+    onChange={(event) => setSelectedRole(event.target.value)}
+    required
+  >
+    <option value="USER">User</option>
+    <option value="ADMIN">Admin</option>
+  </select>
+</div>
+
 
             <div className="form-field">
               <label htmlFor="login-password">Password</label>

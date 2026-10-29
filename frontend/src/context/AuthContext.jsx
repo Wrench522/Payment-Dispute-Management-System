@@ -59,51 +59,61 @@ export function AuthProvider({ children }) {
     return data;
   }
 
-  async function login(email, password) {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email: email.trim().toLowerCase(),
-        password,
-      }),
-    });
+async function login(email, password, selectedRole) {
+  const response = await fetch(`${API_URL}/auth/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: email.trim().toLowerCase(),
+      password,
+    }),
+  });
 
-    const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => ({}));
 
-    if (!response.ok) {
-      throw new Error(
-        data.error ||
+  if (!response.ok) {
+    throw new Error(
+      data.error ||
         data.message ||
         "Unable to sign in. Check your credentials."
-      );
-    }
-
-    if (!data.token) {
-      throw new Error(
-        "The server did not return an authentication token."
-      );
-    }
-
-    const user = {
-      id: data.id,
-      fullName: data.fullName,
-      email: data.email,
-      role: data.role,
-    };
-
-    localStorage.setItem("authToken", data.token);
-    localStorage.setItem("authUser", JSON.stringify(user));
-
-    setSession({
-      token: data.token,
-      user,
-    });
-
-    return user;
+    );
   }
+
+  if (!data.token) {
+    throw new Error("The server did not return an authentication token.");
+  }
+
+  // Verify that the account's real role matches the selected role.
+  const actualRole = String(data.role || "").toUpperCase();
+
+  if (actualRole !== selectedRole.toUpperCase()) {
+    throw new Error(
+      `This account is registered as ${actualRole || "an unknown role"}. ` +
+      `Please select ${actualRole || "the correct role"} to sign in.`
+    );
+  }
+
+  const user = {
+    id: data.id,
+    fullName: data.fullName,
+    email: data.email,
+    role: actualRole,
+  };
+
+  // Save the session only after the role has been checked.
+  localStorage.setItem("authToken", data.token);
+  localStorage.setItem("authUser", JSON.stringify(user));
+
+  setSession({
+    token: data.token,
+    user,
+  });
+
+  return user;
+}
+
 
   function logout() {
     localStorage.removeItem("authToken");
